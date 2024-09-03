@@ -3,7 +3,7 @@ use std::io::{BufWriter, Write};
 use std::path::Path;
 use memchr::memmem;
 
-fn extract(path: &Path) -> String{
+fn extract(path: &Path) -> String {
     let mut exports = String::new();
     match fs::read(path) {
         Ok(bytes) => {
@@ -13,15 +13,15 @@ fn extract(path: &Path) -> String{
                 let mut trash_size = 0;
                 for &byte in after_start {
                     current_chunk.push(byte);
-                    if current_chunk.len() >= 6 && current_chunk[current_chunk.len() - 2.. ] == vec![0, 16] && current_chunk.len() < 75 {
-                        //println!("BBB {:?}", current_chunk);
+                    if (6..75).contains(&current_chunk.len()) && current_chunk[current_chunk.len() - 2.. ] == vec![0, 16] {
+                        //println!("AAA {:?}", current_chunk);
                         if let Ok(valid_string) = String::from_utf8(current_chunk[trash_size..current_chunk.len() - 2].to_vec()) {
                             exports.push_str(&valid_string);
                             exports.push('\n');
-                            //println!("{:?}", current_chunk);
+                            //println!("BBB {:?}", current_chunk);
                         } 
                         else {
-                            //println!("AAA {:?}", current_chunk);
+                            //println!("CCC {:?}", current_chunk);
                             eprintln!("Couldn't convert bytes to a valid UTF-8 string.");
                         }
                         if trash_size == 0 {
