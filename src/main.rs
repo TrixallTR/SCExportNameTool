@@ -11,9 +11,11 @@ fn extract(path: &Path) -> String {
                 let after_start = &bytes[start_index + 5..];
                 let mut current_chunk: Vec<u8> = Vec::new();
                 let mut trash_size = 0;
+
                 for &byte in after_start {
                     current_chunk.push(byte);
-                    if (6..75).contains(&current_chunk.len()) && current_chunk[current_chunk.len() - 2.. ] == vec![0, 16] {
+                    if (6..75).contains(&current_chunk.len()) 
+                    && current_chunk[current_chunk.len() - 2.. ] == vec![0, 16] {
                         //println!("AAA {:?}", current_chunk);
                         if let Ok(valid_string) = String::from_utf8(current_chunk[trash_size..current_chunk.len() - 2].to_vec()) {
                             exports.push_str(&valid_string);
@@ -24,21 +26,16 @@ fn extract(path: &Path) -> String {
                             //println!("CCC {:?}", current_chunk);
                             eprintln!("Couldn't convert bytes to a valid UTF-8 string.");
                         }
-                        if trash_size == 0 {
-                            trash_size = 16;
-                        }
+                        if trash_size == 0 { trash_size = 16 }
                         current_chunk.clear();
                     }
                 }
+                
                 println!("Exports:\n{}", exports);
             }
-            else {
-                eprintln!("'START' not found in file");
-            }
+            else { eprintln!("'START' not found in file") }
         }
-        Err(e) => {
-            eprintln!("Couldn't read file: {}", e);
-        }
+        Err(e) => eprintln!("Couldn't read file: {}", e)
     }
     return exports
 }
@@ -63,9 +60,7 @@ fn main() {
                     writer.flush().expect("Couldn't flush.");
                 }
             }
-            Err(e) => {
-                eprintln!("Failed to read directory entry: {}", e);
-            }
+            Err(e) => eprintln!("Failed to read directory entry: {}", e)
         }
     }
 }
