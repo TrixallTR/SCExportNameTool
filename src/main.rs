@@ -1,47 +1,46 @@
 use std::fs::{self, File};
-use std::io::{BufWriter, Write};
+use std::io::{BufReader, BufWriter, Read, Write};
 use std::path::Path;
 use memchr::memmem;
 
 fn extract(path: &Path) -> String {
     let mut exports = String::new();
-    match fs::read(path) {
-        Ok(bytes) => {
-            if let Some(start_index) = memmem::find(&bytes, b"START") {
-                let after_start = &bytes[start_index + 5..];
-                let mut current_chunk: Vec<u8> = Vec::new();
-                let mut trash_size = 0;
+    let mut bytes = Vec::new();
+    let file = File::open(path).expect("Failed to open file");
+    let mut reader = BufReader::new(file);
+    reader.read_to_end(&mut bytes).expect("Failed to read file");
 
-                for &byte in after_start {
-                    current_chunk.push(byte);
-                    if (6..75).contains(&current_chunk.len()) 
-                    && current_chunk[current_chunk.len() - 2.. ] == vec![0, 16] {
-                        //println!("AAA {:?}", current_chunk);
-                        if let Ok(valid_string) = String::from_utf8(current_chunk[trash_size..current_chunk.len() - 2].to_vec()) {
-                            exports.push_str(&(valid_string + "\n"));
-                            //println!("BBB {:?}", current_chunk);
-                        } 
-                        else {
-                            //println!("CCC {:?}", current_chunk);
-                            eprintln!("Couldn't convert bytes to a valid UTF-8 string.");
-                        }
-                        if trash_size == 0 { trash_size = 16 }
-                        current_chunk.clear();
-                    }
+    if let Some(start_index) = memmem::find(&bytes, b"START") {
+        let after_start = &bytes[start_index + 5..];
+        let mut current_chunk: Vec<u8> = Vec::new();
+        let mut trash_size = 0;
+
+        for &byte in after_start {
+            current_chunk.push(byte);
+            let chunk_length = current_chunk.len();
+            let is_valid_chunk = (6..75).contains(&chunk_length) && current_chunk[chunk_length - 2..] == [0, 16];
+            if is_valid_chunk {
+                let valid_chunk = &current_chunk[trash_size..chunk_length - 2];
+                match std::str::from_utf8(valid_chunk) {
+                    Ok(valid_str) => {
+                        exports.push_str(valid_str);
+                        exports.push('\n');
+                    },
+                    Err(_) => eprintln!("Couldn't convert bytes to a valid UTF-8 string."),
                 }
-                
-                println!("Exports:\n{}", exports);
+                if trash_size == 0 { trash_size = 16 }
+                current_chunk.clear();
             }
-            else { eprintln!("'START' not found in file") }
-        }
-        Err(e) => eprintln!("Couldn't read file: {}", e)
+        }        
+        println!("Exports:\n{}", exports);
     }
+    else { eprintln!("'START' not found in file") }
+
     exports
 }
 
 fn main() {
-    let files = fs::read_dir("./").expect("Failed to read the directory");
-
+    let files = fs::read_dir("./").expect("Failed to read directory");
     for file in files {
         match file {
             Ok(entry) => {
@@ -52,11 +51,11 @@ fn main() {
                     let exports = extract(&path);
                     let output_file_name = format!("extracted_{}.txt", file_name);
                     let output_file_path = Path::new(&output_file_name);
-                    let file = File::create(output_file_path).expect("Could not create file");
+                    let file = File::create(output_file_path).expect("Couldn't create file.");
                     let mut writer = BufWriter::new(file);
 
                     writer.write_all(&exports.as_bytes()).expect("Couldn't write to file.");
-                    writer.flush().expect("Couldn't flush.");
+                    writer.flush().expect("Couldn't flush file.");
                 }
             }
             Err(e) => eprintln!("Failed to read directory entry: {}", e)
