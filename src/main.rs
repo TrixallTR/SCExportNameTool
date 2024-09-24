@@ -18,8 +18,7 @@ fn extract(path: &Path) -> String {
                     && current_chunk[current_chunk.len() - 2.. ] == vec![0, 16] {
                         //println!("AAA {:?}", current_chunk);
                         if let Ok(valid_string) = String::from_utf8(current_chunk[trash_size..current_chunk.len() - 2].to_vec()) {
-                            exports.push_str(&valid_string);
-                            exports.push('\n');
+                            exports.push_str(&(valid_string + "\n"));
                             //println!("BBB {:?}", current_chunk);
                         } 
                         else {
@@ -37,7 +36,7 @@ fn extract(path: &Path) -> String {
         }
         Err(e) => eprintln!("Couldn't read file: {}", e)
     }
-    return exports
+    exports
 }
 
 fn main() {
