@@ -6,13 +6,14 @@ use memchr::memmem;
 fn extract(path: &Path) -> String {
     let mut exports = String::new();
     let mut bytes = Vec::new();
+
     let file = File::open(path).expect("Failed to open file");
     let mut reader = BufReader::new(file);
-    reader.read_to_end(&mut bytes).expect("Failed to read file");
+    reader.read_to_end(&mut bytes).unwrap();
 
     if let Some(start_index) = memmem::find(&bytes, b"START") {
         let after_start = &bytes[start_index + 5..];
-        let mut current_chunk: Vec<u8> = Vec::new();
+        let mut current_chunk = Vec::new();
         let mut trash_size = 0;
 
         for &byte in after_start {
@@ -40,7 +41,7 @@ fn extract(path: &Path) -> String {
 }
 
 fn main() {
-    let files = fs::read_dir("./").expect("Failed to read directory");
+    let files = fs::read_dir("./").unwrap();
     for file in files {
         match file {
             Ok(entry) => {
@@ -50,12 +51,11 @@ fn main() {
                     println!("{} \n", file_name);
                     let exports = extract(&path);
                     let output_file_name = format!("extracted_{}.txt", file_name);
-                    let output_file_path = Path::new(&output_file_name);
-                    let file = File::create(output_file_path).expect("Couldn't create file.");
+                    let file = File::create(output_file_name).unwrap();
                     let mut writer = BufWriter::new(file);
 
-                    writer.write_all(&exports.as_bytes()).expect("Couldn't write to file.");
-                    writer.flush().expect("Couldn't flush file.");
+                    writer.write_all(exports.as_bytes()).unwrap();
+                    writer.flush().unwrap();
                 }
             }
             Err(e) => eprintln!("Failed to read directory entry: {}", e)
